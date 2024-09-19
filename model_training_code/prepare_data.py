@@ -33,7 +33,7 @@ class CorpusDataFrame():
             })
         except Exception as e:
             print('Could not load ', str(path), e)
-            self.exceptions+=1
+            self.exceptions += 1
             pass
 
     def data_frame(self):

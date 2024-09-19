@@ -2,6 +2,6 @@
 *.xlsx
 preprocessing_code/data_audio_combine/*
 preprocessing_code/data_segment/*
-preprocessing_code/__pycache__/Preprocessing_Cutting_Merging.cpython-310.pyc
+preprocessing_code/__pycache__/
 preprocessing_code/data_time/.DS_Store
 .DS_Store

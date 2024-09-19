@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, List, Union
 from transformers.file_utils import ModelOutput
 
-
-import transformers
 from transformers import Wav2Vec2Processor, EvalPrediction
 from transformers.models.wav2vec2.modeling_wav2vec2 import (
     Wav2Vec2PreTrainedModel,
