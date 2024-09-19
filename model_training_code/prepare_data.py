@@ -37,7 +37,7 @@ class CorpusDataFrame():
             pass
 
     def data_frame(self):
-        if self.exceptions > 0: print(f'{exceptions} files could not be loaded')
+        if self.exceptions > 0: print(f'{self.exceptions} files could not be loaded')
 
         # Create the dataframe from the organized data list
         df = pd.DataFrame(self.data)
@@ -46,9 +46,9 @@ class CorpusDataFrame():
 
 # Depression list of daic-woz data for creating unified data frames
 dep = [308, 309, 311,319,320,321,325,330,332,335,337,338,339,344,345,346,
-     347,348,350,351,352,353,354,355,356,359,362,365,367,372,376,377,
-     380,381,384,386,388,389,402,405,410,412,413,414,418,421,422,426,
-     433,440,441,448,453,459,461,483]
+        347,348,350,351,352,353,354,355,356,359,362,365,367,372,376,377,
+        380,381,384,386,388,389,402,405,410,412,413,414,418,421,422,426,
+        433,440,441,448,453,459,461,483]
 
 
 def DAIC_WOZ(data_path):

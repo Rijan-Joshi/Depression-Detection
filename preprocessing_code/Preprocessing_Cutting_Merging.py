@@ -53,7 +53,6 @@ def get_wav_time(wav_path):
     duration = frames / float(rate)
     return duration
 
-
 def get_ms_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     '''
     Audio slicing to get part of the audio in milliseconds
@@ -72,7 +71,6 @@ def get_ms_part_wav(main_wav_path, start_time, end_time, part_wav_path):
 
     word.export(part_wav_path, format="wav")
 
-
 def get_second_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     '''
     Audio slicing to get a portion of the audio in seconds.
@@ -83,10 +81,10 @@ def get_second_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     :param part_wav_path: path of the audio file after capture
     :return.
     '''
-    start_time = int(start_time) * 1000
-    end_time = int(end_time) * 1000
+    start_time = int(start_time * 1000) 
+    end_time = int(end_time * 1000) 
 
-    sound = AudioSegment.from_mp3(main_wav_path)
+    sound = AudioSegment.from_wav(main_wav_path)
     word = sound[start_time:end_time]
 
     word.export(part_wav_path, format="wav")
@@ -109,7 +107,6 @@ def get_minute_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     word = sound[start_time:end_time]
 
     word.export(part_wav_path, format="wav")
-
 
 def wav_to_pcm(wav_path, pcm_path):
     '''
@@ -142,7 +139,6 @@ def pcm_to_wav(pcm_path, wav_path):
     wave_out.setframerate(8000)
     wave_out.writeframes(str_data)
 
-
 def wav_waveform(wave_path):
     '''
     Waveforms corresponding to audio
@@ -162,9 +158,6 @@ def wav_waveform(wave_path):
     plt.plot(x_seq, audio_sequence, 'blue')
     plt.xlabel("time (s)")
     plt.show()
-
-
-# def audio_split(path):
 
 def wav_combine(*args):
     n = args[0][0]  # of wavs to splice
@@ -210,7 +203,6 @@ if __name__ == '__main__':
 
             print("The audio  is %s, the file  is %s" % (files[i], excel_root[i]))
 
-            #
             df = pd.read_excel(path1 + excel_root[i], usecols=['start_time', 'stop_time'])
 
 
@@ -228,8 +220,8 @@ if __name__ == '__main__':
                     start_time = float(start_time)
                     end_time = float(end_time)
 
-                    aduio_segment = path_segment + files[i][:-4] + '_' + str(index) + '.wav'
-                    get_second_part_wav(audio, start_time, end_time, aduio_segment)
+                    audio_segment = path_segment + files[i][:-len('.xlsx')] + '_' + str(index) + '.wav'
+                    get_second_part_wav(audio, start_time, end_time, audio_segment)
 
                     index += 1
                     k += 1
@@ -250,8 +242,8 @@ if __name__ == '__main__':
             f1 = (f1[0], f1[1][:-1])
             f1 = list(map(int, f1))
             r.append(f1)
-        re = sorted(r, key=lambda x: (x[0], x[1]))
-        new_files = [(str(re[i][0]) + '_' + 'AUDIO_' + str(re[i][1]) + '.wav') for i in range(len(re))]
+        regex_sorted = sorted(r, key=lambda x: (x[0], x[1]))
+        new_files = [(str(regex_sorted[i][0]) + '_' + 'AUDIO_' + str(regex_sorted[i][1]) + '.wav') for i in range(len(regex_sorted))]
 
         for f2 in new_files:
             filePaths.append(os.path.join(root, f2))
@@ -277,8 +269,9 @@ if __name__ == '__main__':
             print("Range of w1, w2：%d %d" % (w1, w2))
             id_num2 = 1
 
-            for b in [file_1[i:i + n] for i in range(0, len(file_1), 5)]:
-                out_path = './audio_combine/' + str(id_num) + '_' + str(id_num2) + '.wav'
+            for b in [file_1[i:i + n] for i in range(0, len(file_1), n)]:
+                # out_path =  './audio_combine/' + str(id_num) + '_' + str(id_num2) + '.wav'
+                out_path = os.path.join(os.getcwd(), 'audio_combine', f"{id_num}_{id_num2}.wav")
                 b.insert(0, len(b))
                 b.append(out_path)
                 # print(b)
