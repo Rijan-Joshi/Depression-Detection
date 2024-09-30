@@ -1,7 +1,8 @@
 seed: 103
 
 corpora: daic_woz
-data_path: ./content/data/daic-woz-1/
+# data_path: ./content/data/daic-woz-1/
+data_path: ./../preprocessing_code/audio_combine/
 
 processor_name_or_path: facebook/wav2vec2-base
 pooling_mode: mean

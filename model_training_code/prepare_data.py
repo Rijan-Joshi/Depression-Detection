@@ -9,7 +9,7 @@ import torchaudio
 from sklearn.model_selection import train_test_split
 
 import os
-# import sys
+import sys
 
 # Used to organize and create a unified dataframe for all datasets.
 class CorpusDataFrame():
@@ -51,8 +51,9 @@ dep = [308, 309, 311,319,320,321,325,330,332,335,337,338,339,344,345,346,
         433,440,441,448,453,459,461,483]
 
 
-def DAIC_WOZ(data_path):
+def DAIC_WOZ(data_path, path_label):
     print('PREPARING DAIC_WOZ DATA PATHS')
+    df_label = pd.read_csv(path_label)
 
     cdf = CorpusDataFrame()
 
@@ -62,6 +63,8 @@ def DAIC_WOZ(data_path):
         label = str(path).split('/')[-1].split('_')[0]  # 第1个下划线之后的标签
         label3 = str(path).split('_')[1]  # 第3个下划线之后的标签
 
+        user_id = int(name)
+        
         # based on binary, 0, 1
         if int(label) in dep:
             label1 = 'dep'
@@ -94,7 +97,8 @@ def get_df(corpus, data_path, i=None):
         raise ValueError("Invalid corpus name")
 
 # To get the datasets names and their file paths
-def df(corpora, data_path):
+def df(corpora, data_path, path_label):
+    assert type(corpora) == list or type(corpora) == str
 
     # In case more than one dataset is used.
     if type(corpora) == list:
@@ -191,15 +195,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config_file = args.config
 
+
     with open(config_file) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+    # print('config')
+    # print(config)
+    # sys.exit()
+
 
     train_filepath = config['output_dir'] + "/splits/train.csv"
     test_filepath = config['output_dir'] + "/splits/test.csv"
     valid_filepath = config['output_dir'] + "/splits/valid.csv"
 
     # Create a dataframe
-    df = df(config['corpora'], config['data_path'])
+    df_train = df(config['corpora'], config['data_path'])
 
     # Create train, test, and validation splits and save them to file
     prepare_splits(df, config)

@@ -5,3 +5,4 @@ preprocessing_code/data_segment/*
 preprocessing_code/__pycache__/
 preprocessing_code/data_time/.DS_Store
 .DS_Store
+*.wav

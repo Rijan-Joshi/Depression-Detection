@@ -1,0 +1,12 @@
+pandas
+tqdm
+scikit-learn
+scipy
+threadpoolctl
+PyYAML
+numba
+librosa
+joblib
+torch
+torchaudio
+transformers==4.18.0

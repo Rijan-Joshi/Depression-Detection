@@ -27,6 +27,8 @@ from torch import nn
 
 
 # Get the configuration file
+
+# python3 train.py --config content/config/daic-c2-rmse-roc.yaml
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', help='yaml configuration file path') # EXAMPLE content/config/test.yaml
 args = parser.parse_args()
