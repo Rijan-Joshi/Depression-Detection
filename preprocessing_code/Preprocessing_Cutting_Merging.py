@@ -4,10 +4,10 @@ import wave
 import contextlib
 import numpy as np
 import matplotlib.pyplot as plt
-
 import re
 from scipy.io import wavfile
-from pydub import AudioSegment
+import librosa
+import soundfile as sf
 
 
 def wav_infos(wav_path):
@@ -19,8 +19,6 @@ def wav_infos(wav_path):
     Correspondence: channel, sample width, frame rate, number of frames, unique identifier, lossless
     """
     with wave.open(wav_path, "rb") as f:
-        f = wave.open(wav_path)
-
         return list(f.getparams())
 
 
@@ -32,13 +30,10 @@ def read_wav(wav_path):
     :return: audio content
     """
     with wave.open(wav_path, "rb") as f:
-
         params = f.getparams()
         nchannels, sampwidth, framerate, nframes = params[:4]
-
         # Read the sound data, passing a parameter specifying the length (in sampling points) to be read
         str_data = f.readframes(nframes)
-
     return str_data
 
 
@@ -51,8 +46,8 @@ def get_wav_time(wav_path):
     """
     with contextlib.closing(wave.open(wav_path, "r")) as f:
         frames = f.getnframes()
-    rate = f.getframerate()
-    duration = frames / float(rate)
+        rate = f.getframerate()
+        duration = frames / float(rate)
     return duration
 
 
@@ -61,18 +56,27 @@ def get_ms_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     Audio slicing to get part of the audio in milliseconds
 
     :param main_wav_path: path of the original audio file
-    :param start_time: the start time of the capture
-    :param end_time: end time of the capture
+    :param start_time: the start time of the capture in milliseconds
+    :param end_time: end time of the capture in milliseconds
     :param part_wav_path: the path of the intercepted audio file
     :return.
     """
-    start_time = int(start_time)
-    end_time = int(end_time)
+    # Convert milliseconds to seconds for librosa
+    start_time_sec = int(start_time) / 1000
+    end_time_sec = int(end_time) / 1000
 
-    sound = AudioSegment.from_mp3(main_wav_path)
-    word = sound[start_time:end_time]
+    # Load audio file
+    y, sr = librosa.load(main_wav_path, sr=None)
 
-    word.export(part_wav_path, format="wav")
+    # Convert time to samples
+    start_sample = int(start_time_sec * sr)
+    end_sample = int(end_time_sec * sr)
+
+    # Slice the audio
+    y_segment = y[start_sample:end_sample]
+
+    # Write the sliced audio to file
+    sf.write(part_wav_path, y_segment, sr)
 
 
 def get_second_part_wav(main_wav_path, start_time, end_time, part_wav_path):
@@ -80,18 +84,30 @@ def get_second_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     Audio slicing to get a portion of the audio in seconds.
 
     :param main_wav_path: path of the original audio file
-    :param start_time: the start time of the capture
-    :param end_time: the end time of the intercept.
+    :param start_time: the start time of the capture in seconds
+    :param end_time: the end time of the intercept in seconds
     :param part_wav_path: path of the audio file after capture
     :return.
     """
-    start_time = int(start_time * 1000)
-    end_time = int(end_time * 1000)
+    # Load audio file with scipy.io.wavfile
+    sr, data = wavfile.read(main_wav_path)
 
-    sound = AudioSegment.from_wav(main_wav_path)
-    word = sound[start_time:end_time]
+    # Convert to seconds
+    start_time_sec = int(float(start_time))
+    end_time_sec = int(float(end_time))
 
-    word.export(part_wav_path, format="wav")
+    # Convert time to samples
+    start_sample = int(start_time_sec * sr)
+    end_sample = int(end_time_sec * sr)
+
+    # Make sure we don't exceed the audio length
+    end_sample = min(end_sample, len(data))
+
+    # Slice the audio
+    y_segment = data[start_sample:end_sample]
+
+    # Write the sliced audio to file
+    wavfile.write(part_wav_path, sr, y_segment)
 
 
 def get_minute_part_wav(main_wav_path, start_time, end_time, part_wav_path):
@@ -99,21 +115,27 @@ def get_minute_part_wav(main_wav_path, start_time, end_time, part_wav_path):
     Audio slice to get part of the audio minutes:seconds time style: "12:35"
 
     :param main_wav_path: path to the original audio file
-    :param start_time: the start time of the capture
-    :param end_time: end time of the capture
+    :param start_time: the start time of the capture in format "MM:SS"
+    :param end_time: end time of the capture in format "MM:SS"
     :param part_wav_path: path to the intercepted audio file
     :return.
     """
+    # Convert time format to seconds
+    start_time_sec = int(start_time.split(":")[0]) * 60 + int(start_time.split(":")[1])
+    end_time_sec = int(end_time.split(":")[0]) * 60 + int(end_time.split(":")[1])
 
-    start_time = (
-        int(start_time.split(":")[0]) * 60 + int(start_time.split(":")[1])
-    ) * 1000
-    end_time = (int(end_time.split(":")[0]) * 60 + int(end_time.split(":")[1])) * 1000
+    # Load audio file
+    y, sr = librosa.load(main_wav_path, sr=None)
 
-    sound = AudioSegment.from_mp3(main_wav_path)
-    word = sound[start_time:end_time]
+    # Convert time to samples
+    start_sample = int(start_time_sec * sr)
+    end_sample = int(end_time_sec * sr)
 
-    word.export(part_wav_path, format="wav")
+    # Slice the audio
+    y_segment = y[start_sample:end_sample]
+
+    # Write the sliced audio to file
+    sf.write(part_wav_path, y_segment, sr)
 
 
 def wav_to_pcm(wav_path, pcm_path):
@@ -130,6 +152,7 @@ def wav_to_pcm(wav_path, pcm_path):
 
     data = np.fromfile(f, dtype=np.int16)
     data.tofile(pcm_path)
+    f.close()
 
 
 def pcm_to_wav(pcm_path, wav_path):
@@ -147,6 +170,8 @@ def pcm_to_wav(pcm_path, wav_path):
     wave_out.setsampwidth(2)
     wave_out.setframerate(8000)
     wave_out.writeframes(str_data)
+    f.close()
+    wave_out.close()
 
 
 def wav_waveform(wave_path):
@@ -155,36 +180,47 @@ def wav_waveform(wave_path):
     :param wave_path:  audio path
     :return:
     """
-    file = wave.open(wave_path)
+    y, sr = librosa.load(wave_path, sr=None)
+    time = np.arange(0, len(y)) / sr
 
-    a = file.getparams().nframes  # Total number of frames
-    f = file.getparams().framerate
-    sample_time = 1 / f
-    time = a / f
-    sample_frequency, audio_sequence = wavfile.read(wave_path)
-    # print(audio_sequence)
-    x_seq = np.arange(0, time, sample_time)
-
-    plt.plot(x_seq, audio_sequence, "blue")
-    plt.xlabel("time (s)")
+    plt.figure(figsize=(10, 4))
+    plt.plot(time, y, "blue")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.title("Waveform")
     plt.show()
 
 
-def wav_combine(*args):
-    n = args[0][0]  # of wavs to splice
-    i = 1
-    sounds = []
-    while i <= n:
-        sounds.append(AudioSegment.from_wav(args[0][i]))
-        i += 1
-    playlist = AudioSegment.empty()
-    for sound in sounds:
-        playlist += sound
-    playlist.export(args[0][n + 1], format="wav")
+def wav_combine(files_list):
+    """
+    Combine multiple wav files into one
+
+    :param files_list: list containing [number_of_files, file1, file2, ..., output_path]
+    :return: None
+    """
+    n = files_list[0]  # Number of files to splice
+    output_path = files_list[n + 1]  # Output path is the last item
+
+    # Initialize empty array for combined audio
+    combined_audio = np.array([])
+    sample_rate = None
+
+    # Load and combine each audio file
+    for i in range(1, n + 1):
+        y, sr = librosa.load(files_list[i], sr=None)
+
+        # Store sample rate from first file
+        if sample_rate is None:
+            sample_rate = sr
+
+        # Append audio data
+        combined_audio = np.append(combined_audio, y)
+
+    # Write combined audio to file
+    sf.write(output_path, combined_audio, sample_rate)
 
 
 def pdfFilesPath(path):
-
     filePaths = []  # Name of all files in the storage directory with paths
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -193,48 +229,41 @@ def pdfFilesPath(path):
 
 
 if __name__ == "__main__":
-
     path = r"./all_data/"  # Audio directories to be cut
     # The cut audio directory, which is also the audio directory to be merged.
     path_segment = r"./audio_split/"
     path1 = r"./data_time1/"  # # excel file directory
     excel_root = os.listdir(path1)  # excel file directory deposit list
 
+    os.makedirs(path_segment, exist_ok=True)
+    os.makedirs("./audio_combine/", exist_ok=True)
+
     a_l = []  # Record the number of audio cuts
     print("Start cutting the audio!")
 
     for root, dir, files in os.walk(path):
         for i in range(len(files)):
-
-            audio = root + files[i]
-
+            audio = os.path.join(root, files[i])
             time_all = int(get_wav_time(audio) * 1000)
 
-            print("The audio  is %s, the file  is %s" % (files[i], excel_root[i]))
+            print("The audio is %s, the file is %s" % (files[i], excel_root[i]))
 
-            ##Place to change since we have the csv file
-            df = pd.read_csv(path1 + excel_root[i], usecols=["start_time", "stop_time"])
+            df = pd.read_excel(
+                os.path.join(path1, excel_root[i]), usecols=["start_time", "stop_time"]
+            )
 
             index = 1  # Cut serial number names, starting with serial number 1
             k = 0
             # k_l = 0  # Total number of audio cuts recorded
-            for j in df:
+            for j in range(len(df)):
                 l = len(df)
                 # print("l= %d" % l)
                 while k <= l - 1:
+                    start_time = float(df.loc[k, "start_time"])
+                    end_time = float(df.loc[k, "stop_time"])
 
-                    start_time = df.loc[k, ["start_time"]]
-                    end_time = df.loc[k, ["stop_time"]]
-
-                    start_time = float(start_time)
-                    end_time = float(end_time)
-
-                    audio_segment = (
-                        path_segment
-                        + files[i][: -len(".xlsx")]
-                        + "_"
-                        + str(index)
-                        + ".wav"
+                    audio_segment = os.path.join(
+                        path_segment, f"{os.path.splitext(files[i])[0]}_{index}.wav"
                     )
                     get_second_part_wav(audio, start_time, end_time, audio_segment)
 
@@ -242,7 +271,6 @@ if __name__ == "__main__":
                     k += 1
 
             a_l.append(k)
-            # print(a_l)
             print("Cutting out %d audio" % l)
 
     print("A total of %d audio cuts" % sum(a_l))
@@ -254,24 +282,20 @@ if __name__ == "__main__":
     for root, dir, files in os.walk(path_segment):
         for file in files:
             f1 = re.findall(r"\d+\.?\d*", file)
-            f1 = (f1[0], f1[1][:-1])
-            f1 = list(map(int, f1))
-            r.append(f1)
-        regex_sorted = sorted(r, key=lambda x: (x[0], x[1]))
-        new_files = [
-            (
-                str(regex_sorted[i][0])
-                + "_"
-                + "AUDIO_"
-                + str(regex_sorted[i][1])
-                + ".wav"
-            )
-            for i in range(len(regex_sorted))
-        ]
+            if len(f1) >= 2:  # Check if there are at least 2 numbers in the filename
+                f1 = (f1[0], f1[1][:-1] if f1[1][-1:].isalpha() else f1[1])
+                f1 = list(map(int, f1))
+                r.append(f1)
 
-        for f2 in new_files:
-            filePaths.append(os.path.join(root, f2))
-    # print(filePaths)
+        if r:  # Only proceed if r has elements
+            sorted_r = sorted(r, key=lambda x: (x[0], x[1]))
+            new_files = [
+                f"{str(sorted_r[i][0])}_AUDIO_{str(sorted_r[i][1])}.wav"
+                for i in range(len(sorted_r))
+            ]
+
+            for f2 in new_files:
+                filePaths.append(os.path.join(root, f2))
 
     print("*" * 50)
     print("Start merging audio!")
@@ -283,42 +307,41 @@ if __name__ == "__main__":
     # w1,w2 is the range of audio splices to ensure that only files cut from the same audio are merged,
     # avoiding audio splices such as 300 and 301.
     w1 = 0
-    w2 = a_l[0]
+    w2 = a_l[0] if a_l else 0
 
-    for file in filePaths:
-        # if w1 != sum(a_l) and w2 != sum(a_l):
-        # if w1 != sum(a_l):
-        file_1 = filePaths[w1:w2]
-        # print(file_1)
-        print("Range of w1, w2：%d %d" % (w1, w2))
-        id_num2 = 1
+    if filePaths:  # Only proceed if there are files to process
+        # Process one batch at a time instead of looping through every file
+        while w1 < len(filePaths):
+            # Make sure w2 doesn't exceed the array bounds
+            if w2 > len(filePaths):
+                w2 = len(filePaths)
 
-        for b in [file_1[i : i + n] for i in range(0, len(file_1), n)]:
-            # out_path =  './audio_combine/' + str(id_num) + '_' + str(id_num2) + '.wav'
-            out_path = os.path.join(
-                os.getcwd(), "audio_combine", f"{id_num}_{id_num2}.wav"
-            )
-            b.insert(0, len(b))
-            b.append(out_path)
-            # print(b)
-            wav_combine(b)
-            id_num2 += 1
-            # print(id_num2)
+            if w1 >= w2:
+                break
 
-        # w1 = w2
-        # w2 = w2 + a_l[w]
-        # id_num += 1
-        # w += 1
+            file_1 = filePaths[w1:w2]
+            print("Range of w1, w2: %d %d" % (w1, w2))
+            id_num2 = 1
 
-        if w < len(a_l):
-            w1 = w2
-            w2 = w2 + a_l[w]
-            # Because there are no audio files with the serial numbers 342,394,398,460 in the dataset file, these numbers are skipped.
-            if id_num == 341 or id_num == 393 or id_num == 397 or id_num == 459:
-                id_num += 2
+            for b in [file_1[i : i + n] for i in range(0, len(file_1), n)]:
+                if not b:  # Skip empty batches
+                    continue
+
+                out_path = os.path.join("./audio_combine/", f"{id_num}_{id_num2}.wav")
+                batch_with_metadata = [len(b)] + b + [out_path]
+                wav_combine(batch_with_metadata)
+                id_num2 += 1
+
+            if w < len(a_l):
+                w1 = w2
+                w2 = w2 + a_l[w]
+                # Because there are no audio files with the serial numbers 342,394,398,460 in the dataset file, these numbers are skipped.
+                if id_num == 341 or id_num == 393 or id_num == 397 or id_num == 459:
+                    id_num += 2
+                else:
+                    id_num += 1
+                w += 1
             else:
-                id_num += 1
-            w += 1
-        else:
-            break
+                break
+
     print("Audio merge complete!")
