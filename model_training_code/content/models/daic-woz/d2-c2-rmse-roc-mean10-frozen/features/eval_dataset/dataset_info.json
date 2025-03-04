@@ -1,0 +1,39 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "path": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "class_2": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "class_4": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "score": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "input_values": {
+      "feature": {
+        "dtype": "float32",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "labels": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}
