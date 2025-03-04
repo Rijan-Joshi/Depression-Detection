@@ -266,6 +266,8 @@ if __name__ == "__main__":
     os.makedirs("./audio_combine/", exist_ok=True)
 
     a_l = []  # Record the number of audio cuts
+    original_ids = {}  # Dictionary to track original participant IDs
+
     print("Start cutting the audio!")
 
     for root, dir, files in os.walk(path):
@@ -275,24 +277,29 @@ if __name__ == "__main__":
 
             print("The audio is %s, the file is %s" % (files[i], excel_root[i]))
 
+            # Extract the original participant ID from the filename
+            # Assuming filenames are like "321_AUDIO.wav" where 321 is the participant ID
+            original_id = os.path.splitext(files[i])[0].split("_")[0]
+
             df = pd.read_excel(
                 os.path.join(path1, excel_root[i]), usecols=["start_time", "stop_time"]
             )
 
             index = 1  # Cut serial number names, starting with serial number 1
             k = 0
-            # k_l = 0  # Total number of audio cuts recorded
             for j in range(len(df)):
                 l = len(df)
-                # print("l= %d" % l)
                 while k <= l - 1:
                     start_time = float(df.loc[k, "start_time"])
                     end_time = float(df.loc[k, "stop_time"])
 
-                    audio_segment = os.path.join(
+                    audio_segment_path = os.path.join(
                         path_segment, f"{os.path.splitext(files[i])[0]}_{index}.wav"
                     )
-                    get_second_part_wav(audio, start_time, end_time, audio_segment)
+                    get_second_part_wav(audio, start_time, end_time, audio_segment_path)
+
+                    # Track which segment belongs to which original audio
+                    original_ids[audio_segment_path] = original_id
 
                     index += 1
                     k += 1
@@ -304,7 +311,8 @@ if __name__ == "__main__":
     print(a_l)
     print("Audio cutting complete!")
 
-    # Update the file parsing section (around line 287)
+    # Create a mapping from cut audio files to their original IDs
+    segment_to_original = {}
 
     filePaths = []
     r = []
@@ -318,6 +326,13 @@ if __name__ == "__main__":
                     audio_id = int(f1[0])
                     segment_id = int(f1[1])
                     r.append((audio_id, segment_id))
+
+                    # Store the full path to access later
+                    full_path = os.path.join(root, file)
+                    segment_to_original[full_path] = original_ids.get(
+                        full_path, str(audio_id)
+                    )
+
                 except (ValueError, IndexError):
                     # Skip files with problematic naming
                     print(f"Skipping file with problematic naming: {file}")
@@ -339,12 +354,15 @@ if __name__ == "__main__":
 
     # Initial value setting
     n = 5  # Select n audios to merge
-    id_num = 300  # Starting number of file naming after merger
+    id_num = 300  # Starting number for fallback naming
     w = 1
     # w1,w2 is the range of audio splices to ensure that only files cut from the same audio are merged,
     # avoiding audio splices such as 300 and 301.
     w1 = 0
     w2 = a_l[0] if a_l else 0
+
+    # Create a mapping file to track original IDs
+    mapping_data = []
 
     if filePaths:  # Only proceed if there are files to process
         # Process one batch at a time instead of looping through every file
@@ -364,7 +382,24 @@ if __name__ == "__main__":
                 if not b:  # Skip empty batches
                     continue
 
-                out_path = os.path.join("./audio_combine/", f"{id_num}_{id_num2}.wav")
+                # Get the original ID from the first file in the batch
+                first_file = b[0]
+                original_id = segment_to_original.get(first_file, str(id_num))
+
+                # Use the original participant ID in the output filename
+                out_path = os.path.join(
+                    "./audio_combine/", f"{original_id}_{id_num2}.wav"
+                )
+
+                # Record the mapping for future reference
+                mapping_data.append(
+                    {
+                        "merged_file": f"{original_id}_{id_num2}.wav",
+                        "original_id": original_id,
+                        "segment_files": ",".join([os.path.basename(f) for f in b]),
+                    }
+                )
+
                 batch_with_metadata = [len(b)] + b + [out_path]
                 wav_combine(batch_with_metadata)
                 id_num2 += 1
@@ -381,4 +416,8 @@ if __name__ == "__main__":
             else:
                 break
 
+    # Save the mapping information to a CSV file for reference
+    pd.DataFrame(mapping_data).to_csv("./audio_combine/file_mapping.csv", index=False)
+
     print("Audio merge complete!")
+    print(f"Mapping file saved to ./audio_combine/file_mapping.csv")
