@@ -1,41 +1,15 @@
 {
   "activation_dropout": 0.0,
   "apply_spec_augment": true,
-  "architectures": [
-    "Wav2Vec2ForPreTraining"
-  ],
+  "architectures": ["Wav2Vec2ForPreTraining"],
   "attention_dropout": 0.1,
   "bos_token_id": 1,
   "codevector_dim": 256,
   "contrastive_logits_temperature": 0.1,
   "conv_bias": false,
-  "conv_dim": [
-    512,
-    512,
-    512,
-    512,
-    512,
-    512,
-    512
-  ],
-  "conv_kernel": [
-    10,
-    3,
-    3,
-    3,
-    3,
-    2,
-    2
-  ],
-  "conv_stride": [
-    5,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2
-  ],
+  "conv_dim": [512, 512, 512, 512, 512, 512, 512],
+  "conv_kernel": [10, 3, 3, 3, 3, 2, 2],
+  "conv_stride": [5, 2, 2, 2, 2, 2, 2],
   "ctc_loss_reduction": "sum",
   "ctc_zero_infinity": false,
   "diversity_loss_weight": 0.1,
@@ -53,7 +27,7 @@
   "hidden_size": 768,
   "initializer_range": 0.02,
   "intermediate_size": 3072,
-  "layer_norm_eps": 1e-05,
+  "layer_norm_eps": 1e-5,
   "layerdrop": 0.0,
   "mask_channel_length": 10,
   "mask_channel_min_space": 1,

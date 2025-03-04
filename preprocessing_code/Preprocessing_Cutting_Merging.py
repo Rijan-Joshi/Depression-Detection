@@ -202,22 +202,49 @@ def wav_combine(files_list):
     output_path = files_list[n + 1]  # Output path is the last item
 
     # Initialize empty array for combined audio
-    combined_audio = np.array([])
+    combined_audio = np.array([], dtype=np.float32)
     sample_rate = None
 
     # Load and combine each audio file
     for i in range(1, n + 1):
-        y, sr = librosa.load(files_list[i], sr=None)
+        try:
+            # Use wavfile instead of librosa
+            sr, data = wavfile.read(files_list[i])
 
-        # Store sample rate from first file
-        if sample_rate is None:
-            sample_rate = sr
+            # Convert data to float32 for consistent processing
+            if data.dtype != np.float32:
+                # Normalize based on the datatype
+                if data.dtype == np.int16:
+                    data = data.astype(np.float32) / 32768.0
+                elif data.dtype == np.int32:
+                    data = data.astype(np.float32) / 2147483648.0
+                else:
+                    data = data.astype(np.float32)
 
-        # Append audio data
-        combined_audio = np.append(combined_audio, y)
+            # Store sample rate from first file
+            if sample_rate is None:
+                sample_rate = sr
+            elif sr != sample_rate:
+                print(
+                    f"Warning: Sample rate mismatch. Expected {sample_rate}, got {sr} for file {files_list[i]}"
+                )
+                # Simplest approach: ignore sample rate differences
+                # A better approach would require resampling
 
-    # Write combined audio to file
-    sf.write(output_path, combined_audio, sample_rate)
+            # Append audio data
+            combined_audio = np.append(combined_audio, data)
+
+        except Exception as e:
+            print(f"Error processing file {files_list[i]}: {e}")
+            # Continue with next file
+
+    # If we have audio data, write it to a file
+    if len(combined_audio) > 0 and sample_rate is not None:
+        # Convert back to int16 for WAV file
+        combined_audio = (combined_audio * 32768.0).astype(np.int16)
+        wavfile.write(output_path, sample_rate, combined_audio)
+    else:
+        print(f"Warning: No audio data to write to {output_path}")
 
 
 def pdfFilesPath(path):

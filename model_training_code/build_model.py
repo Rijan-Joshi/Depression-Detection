@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, List, Union
 from transformers.file_utils import ModelOutput
 
+
+import transformers
 from transformers import Wav2Vec2Processor, EvalPrediction
 from transformers.models.wav2vec2.modeling_wav2vec2 import (
     Wav2Vec2PreTrainedModel,
-    Wav2Vec2Model
+    Wav2Vec2Model,
 )
 
 import numpy as np
@@ -19,6 +21,7 @@ from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 
 # Build the classification model
+
 
 @dataclass
 class SpeechClassifierOutput(ModelOutput):
@@ -62,31 +65,28 @@ class Wav2Vec2ForSpeechClassification(Wav2Vec2PreTrainedModel):
     def freeze_feature_extractor(self):
         self.wav2vec2.feature_extractor._freeze_parameters()
 
-    def merged_strategy(
-            self,
-            hidden_states,
-            mode="mean"      # Mean pooling
-    ):
+    def merged_strategy(self, hidden_states, mode="mean"):  # Mean pooling
         if mode == "mean":
             outputs = torch.mean(hidden_states, dim=1)
-        elif mode == "max":   # max pooling
+        elif mode == "max":  # max pooling
             outputs = torch.max(hidden_states, dim=1)[0]
         else:
-            raise Exception(
-                "Pooling methods that can be selected: 'mean', 'max'")
+            raise Exception("Pooling methods that can be selected: 'mean', 'max'")
 
         return outputs
 
     def forward(
-            self,
-            input_values,
-            attention_mask=None,
-            output_attentions=None,
-            output_hidden_states=None,
-            return_dict=None,
-            labels=None,
+        self,
+        input_values,
+        attention_mask=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
+        labels=None,
     ):
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
         outputs = self.wav2vec2(
             input_values,
             attention_mask=attention_mask,
@@ -101,7 +101,9 @@ class Wav2Vec2ForSpeechClassification(Wav2Vec2PreTrainedModel):
         loss = None
         if labels is not None:
             if self.config.problem_type is None:
-                if self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                if self.num_labels > 1 and (
+                    labels.dtype == torch.long or labels.dtype == torch.int
+                ):
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -130,6 +132,7 @@ class Wav2Vec2ForSpeechClassification(Wav2Vec2PreTrainedModel):
 Data collator is defined here    
 """
 
+
 @dataclass
 class DataCollatorCTCWithPadding:
     """
@@ -143,8 +146,12 @@ class DataCollatorCTCWithPadding:
     pad_to_multiple_of: Optional[int] = None
     pad_to_multiple_of_labels: Optional[int] = None
 
-    def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
-        input_features = [{"input_values": feature["input_values"]} for feature in features]
+    def __call__(
+        self, features: List[Dict[str, Union[List[int], torch.Tensor]]]
+    ) -> Dict[str, torch.Tensor]:
+        input_features = [
+            {"input_values": feature["input_values"]} for feature in features
+        ]
         label_features = [feature["labels"] for feature in features]
 
         d_type = torch.long if isinstance(label_features[0], int) else torch.float
@@ -172,7 +179,7 @@ def data_collator(processor):
 # def compute_metrics(p: EvalPrediction, is_regression=True):
 def compute_metrics(p: EvalPrediction, is_regression=False):
 
-    preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions  
+    preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
     # preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
     # print(type(preds))     # class 'numpy.ndarray'>
     # if is_regression:
