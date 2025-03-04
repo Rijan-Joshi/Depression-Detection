@@ -277,20 +277,30 @@ if __name__ == "__main__":
     print(a_l)
     print("Audio cutting complete!")
 
+    # Update the file parsing section (around line 287)
+
     filePaths = []
     r = []
     for root, dir, files in os.walk(path_segment):
         for file in files:
-            f1 = re.findall(r"\d+\.?\d*", file)
+            # Extract numbers from filenames using a better pattern
+            f1 = re.findall(r"\d+", file)  # This will find just the digit sequences
             if len(f1) >= 2:  # Check if there are at least 2 numbers in the filename
-                f1 = (f1[0], f1[1][:-1] if f1[1][-1:].isalpha() else f1[1])
-                f1 = list(map(int, f1))
-                r.append(f1)
+                try:
+                    # Convert to integers, only taking the first two numbers
+                    audio_id = int(f1[0])
+                    segment_id = int(f1[1])
+                    r.append((audio_id, segment_id))
+                except (ValueError, IndexError):
+                    # Skip files with problematic naming
+                    print(f"Skipping file with problematic naming: {file}")
+                    continue
 
+        # Only proceed after processing all files in the directory
         if r:  # Only proceed if r has elements
             sorted_r = sorted(r, key=lambda x: (x[0], x[1]))
             new_files = [
-                f"{str(sorted_r[i][0])}_AUDIO_{str(sorted_r[i][1])}.wav"
+                f"{sorted_r[i][0]}_AUDIO_{sorted_r[i][1]}.wav"
                 for i in range(len(sorted_r))
             ]
 
